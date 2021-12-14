@@ -1,0 +1,214 @@
+<!--Charts: Overview of pie chart UI components-->
+
+{% extends "masterPage.html" %}
+
+{% block title %}
+<span>ISE Client Report Page</span>
+{% endblock %}
+
+{% block content %}
+<script type="text/javascript">
+
+    $(function() {
+      $('input[name="daterange"]').daterangepicker({
+        opens: 'left'
+      }, function(start, end, label) {
+        
+        console.log("A new date selection was made: " + start.format('YYYY-MM-DD') + ' to ' + end.format('YYYY-MM-DD'));
+
+        var csv = document.getElementById("csvButton");
+        csv.href = ""
+        console.log(csv.href)
+        console.log("-------")
+        csv.href = "/getPlotCSV/" + start.format('YYYY-MM-DD') + '|' + end.format('YYYY-MM-DD')
+        console.log(csv.href)
+
+        $.ajax({
+                data : {
+                    start : start.format('YYYY-MM-DD'),
+                    end : end.format('YYYY-MM-DD')
+                },
+                type : 'POST',
+                url : '/ise',
+                dataType: 'json',
+                traditional: true,
+                success: function (data) {
+                    var entries = data.data
+                    var table = document.getElementById('myTable')
+                    $("#myTable").empty()
+
+                    for (var i = 0; i < entries.length; i++){
+                        var row =  `<tr>
+                                        <td>${entries[i].time}</td>
+                                        <td>${entries[i].user}</td>
+                                        <td>${entries[i].ad}</td>
+                                    </tr>`
+
+                       // table.innerHTML  += row
+                    }
+
+                    if (myChart1) {
+                            // the variable is defined
+                            myChart1.destroy()
+                        }
+
+                    if (myChart2) {
+                            // the variable is defined
+                            myChart2.destroy()
+                    }
+
+                    if (myChart3) {
+                            // the variable is defined
+                            myChart3.destroy()
+                        }
+                    
+                    
+                    // generating pie chart for AD group Distribution
+                    $('#myChart3').remove();
+                    $('#area3').append('<canvas id="myChart3" width="450" height="400"></canvas>');
+                    var ctx3 = document.getElementById('myChart3').getContext('2d');
+
+                    var myChart3 = new Chart(ctx3, {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['Students', 'Faculty/Staff'],
+                            datasets: [{
+                                label: 'devices',
+                                data: data.count,
+                                backgroundColor: [
+                                    'rgba(255, 99, 132, 0.2)',
+                                    'rgba(54, 162, 235, 0.2)',
+                                ],
+                                borderColor: [
+                                    'rgba(255, 99, 132, 1)',
+                                    'rgba(54, 162, 235, 1)',
+                                ],
+                                borderWidth: 1,
+                                fill:false,
+                            }]
+                        },
+                        options: {
+                            animation: false,
+                            title: {
+                            display: true,
+                            text: 'AD Group Distribution'
+                            }
+                        }
+                    });
+
+                    // generating line chart for students
+
+                    $('#myChart1').remove(); 
+                    $('#area1').append('<canvas id="myChart1" width="450" height="400"></canvas>');
+                    var ctx1 = document.getElementById('myChart1').getContext('2d');
+
+                    var myChart1 = new Chart(ctx1, {
+                    type: 'line',
+                    data: {
+                        datasets: [{
+                        label: "Students",
+                        data: data.student_data,
+                        borderColor: 'rgb(255, 99, 132, 0.2)',
+                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                        pointBackgroundColor : 'rgb(255, 99, 132, 0.2)',
+                        fill:false,
+                        }],
+                    },
+                    options: {
+                        animation: false,
+                        scales: {
+                        xAxes: [{
+                            ticks: {
+                            autoSkip: false,
+                            maxRotation: 90,
+                            minRotation: 90
+                        },
+                            type: 'time',
+                            time: {
+                            unit: 'day'
+                            }
+                        }]
+                        }
+                    }
+                    });
+
+
+                    // generating line chart for faculty
+                    $('#myChart2').remove(); 
+                    $('#area2').append('<canvas id="myChart2" width="450" height="400"></canvas>');
+                    var ctx2 = document.getElementById('myChart2').getContext('2d');
+
+                    var myChart2 = new Chart(ctx2, {
+                    type: 'line',
+                    data: {
+                        datasets: [{
+                        label: "Faculty",
+                        data: data.faculty_data,
+                        borderColor: 'rgb(54, 162, 235, 0.2)',
+                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                        pointBackgroundColor : 'rgb(54, 162, 235, 0.2)',
+                        fill:false,
+                        }]
+                    },
+                    options: {
+                        animation:false,
+                        scales: {
+                        xAxes: [{
+                            ticks: {
+                            autoSkip: false,
+                            maxRotation: 90,
+                            minRotation: 90
+                        },
+                            type: 'time',
+                            time: {
+                            unit: 'day'
+                            }
+                        }]
+                        }
+                    }
+                    });
+
+            }});
+        })
+    });
+</script>
+    <!-- Sidebar -->
+     <!-- Left Rail -->
+     <div class="container-fluid">
+     {% include "menu.html" %}
+
+    <div id="content" class="col-10">
+        <br>
+        <div id="section" class="container-fluid">
+            <div class="header-panel header-panel--right hidden-md-down">
+                <a id="csvButton" href="/getPlotCSV/1">Generate Radius Authentication Report</a>
+            </div>
+            <br>
+            <div class="row">
+                <div class="col-xl-12">
+                    <div class="panel panel--loose panel--raised base-margin-bottom" height="500">
+                        <h2 style="text-align:center" class="subtitle">Successful Radius Events</h2>
+                        <div class ="row">
+                            <div class="col-md-4" style="overflow-y: scroll; height:400px;">
+                                <input type="text" name="daterange" value={{date_range}} />
+                            </div>
+                            <div id="area1" class="col-md-4">
+                                <canvas id="myChart1" width="450" height="400"></canvas>
+                            </div>
+                            <div id="area2" class="col-md-4">
+                                <canvas id="myChart2" width="450" height="400"></canvas>
+                            </div>
+                            <div class="col-md-4"></div>
+                            <div id="area3" class="col-md-4">
+                                <canvas id="myChart3"></canvas>
+                            </div>
+                            <div class="col-md-4"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    </div> 
+{% endblock %}
